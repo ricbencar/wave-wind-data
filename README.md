@@ -1,4 +1,4 @@
-# ECMWF ERA5 Wave & Wind Hindcast Data Downloader
+# Wave & Wind Hindcast Data Downloader
 
 This repository contains a Python script to download and process **ERA5 reanalysis data** using the **Climate Data Store (CDS) API** provided by ECMWF. The script:
 
