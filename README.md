@@ -2,7 +2,7 @@
 
 This repository contains a Python script to download and process **ERA5 reanalysis data** using the **Climate Data Store (CDS) API** provided by ECMWF. The script:
 
-- `download_era5 (swh mwd pp1d wind dwi).py` - Downloads **wave height, wave direction, peak wave period, wind speed, and wind direction**.
+- `download_era5_hindcast_data.py` - Downloads **wave height, wave direction, peak wave period, wind speed, and wind´ direction**.
 
 ## 📌 Features
 - Downloads hourly **ERA5 reanalysis** data.
@@ -14,7 +14,7 @@ This repository contains a Python script to download and process **ERA5 reanalys
 ## 📂 Files
 | File | Description |
 |------|-------------|
-| `download_era5 (swh mwd pp1d wind dwi).py` | Retrieves wind and ocean wave data. |
+| `download_era5_hindcast_data.py` | Retrieves wind and ocean wave data. |
 | `download_era5_data.log` | Log file storing execution details. |
 | `grib/` | Folder for storing raw GRIB files. |
 | `results/download_era5_data.csv` | Processed data in CSV format. |
@@ -69,7 +69,7 @@ verify: 1
 Use the following command to run the script:
 
 ```sh
-python "download_era5 (swh mwd pp1d wind dwi).py"
+python "download_era5_hindcast_data.py"
 ```
 
 ### 🎯 Configurable Parameters
