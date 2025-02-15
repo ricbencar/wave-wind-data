@@ -1,4 +1,4 @@
-# ERA5 Data Downloader
+# ECMWF ERA5 Wave & Wind Hindcast Data Downloader
 
 This repository contains a Python script to download and process **ERA5 reanalysis data** using the **Climate Data Store (CDS) API** provided by ECMWF. The script:
 
@@ -117,6 +117,7 @@ datetime,swh,mwd,pp1d,wind,dwi
 - [CDS Documentation](https://confluence.ecmwf.int/display/CKB/Climate+Data+Store+%28CDS%29+documentation)
 - [ERA5 Single Levels Dataset](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview)
 - [ECMWF ERA5 Overview](https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5)
+- [Bidlot, J.-R. (2020). Ocean wave model output parameters. ECMWF.] (https://confluence.ecmwf.int/download/attachments/59774192/wave_parameters.pdf)
 - [Parameter Info](https://codes.ecmwf.int/grib/param-db/)
 
 ---
