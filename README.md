@@ -4,14 +4,14 @@ This repository contains a Python script to download and process **ERA5 reanalys
 
 - `download_era5_hindcast_data.py` - Downloads **wave height, wave direction, peak wave period, wind speed, and wind´ direction**.
 
-## 📌 Features
+## Features
 - Downloads hourly **ERA5 reanalysis** data.
 - Retrieves selected meteorological and oceanographic variables.
 - Uses a retry mechanism with **exponential back-off** to handle API failures.
 - Saves processed data in **CSV format** for further analysis.
 - Uses **logging** to record download and processing steps.
 
-## 📂 Files
+## Files
 | File | Description |
 |------|-------------|
 | `download_era5_hindcast_data.py` | Retrieves wind and ocean wave data. |
@@ -21,7 +21,7 @@ This repository contains a Python script to download and process **ERA5 reanalys
 
 ---
 
-## 🌊 About the ERA5 Wave Model
+## About the ERA5 Wave Model
 This dataset is derived from the **ECMWF Reanalysis v5 (ERA5) wave model**, which provides hourly estimates of essential climate variables spanning from 1940 to the present. The ERA5 wave model is a component of the ERA5 dataset, developed by the **European Centre for Medium-Range Weather Forecasts (ECMWF)**. 
 
 ### ERA5 Wave Model Highlights:
@@ -37,8 +37,8 @@ More details can be found at:
 
 ---
 
-## 🚀 Installation
-### 1️⃣ Install Dependencies
+## Installation
+### Install Dependencies
 Ensure you have **Python 3.x** installed. Then install the required libraries using **Conda**:
 
 ```sh
@@ -51,7 +51,7 @@ Alternatively, use **pip**:
 pip install cdsapi pygrib pandas tqdm
 ```
 
-### 2️⃣ Set Up CDS API Key
+### Set Up CDS API Key
 1. Register for an **ECMWF account** at: [CDS Registration](https://cds.climate.copernicus.eu/user/register)
 2. Obtain your **API key** from: [CDS API](https://cds.climate.copernicus.eu/api-how-to)
 3. Create a `.cdsapirc` file in your home directory (`~/.cdsapirc` on Linux/Mac, `C:\Users\YourName\.cdsapirc` on Windows):
@@ -64,7 +64,7 @@ verify: 1
 
 ---
 
-## 📌 Usage
+## Usage
 ### Run the Script
 Use the following command to run the script:
 
@@ -72,7 +72,7 @@ Use the following command to run the script:
 python "download_era5_hindcast_data.py"
 ```
 
-### 🎯 Configurable Parameters
+### Configurable Parameters
 The script retrieves data for **Leixões Costeira, Porto (Portugal)** with coordinates **(41.31666°N, -8.983333°W)**. You can modify these values in the script:
 
 ```python
@@ -87,7 +87,7 @@ START_YEAR = 1940
 END_YEAR = 2025
 ```
 
-### 📜 Variables Retrieved
+### Variables Retrieved
 | Variable | Short Name | Description |
 |----------|-----------|-------------|
 | `swh` | 140229 | Significant height of combined wind waves and swell |
@@ -98,7 +98,7 @@ END_YEAR = 2025
 
 ---
 
-## 📂 Data Storage
+## Data Storage
 The downloaded data is stored in:
 - **GRIB files** in the `grib/` folder.
 - **Processed CSV data** in `results/download_era5_data.csv`.
@@ -112,7 +112,7 @@ datetime,swh,mwd,pp1d,wind,dwi
 
 ---
 
-## 🔗 References
+## References
 - [CDS API Installation](https://confluence.ecmwf.int/display/CKB/How+to+install+and+use+CDS+API+on+Windows)
 - [CDS Documentation](https://confluence.ecmwf.int/display/CKB/Climate+Data+Store+%28CDS%29+documentation)
 - [ERA5 Single Levels Dataset](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview)
