@@ -120,11 +120,3 @@ datetime,swh,mwd,pp1d,wind,dwi
 - [Parameter Info](https://codes.ecmwf.int/grib/param-db/)
 
 ---
-
-## 👨‍💻 Authors
-Developed for research and analysis of **ERA5 meteorological data**.
-
-📌 **Maintainer**: Your Name
-📧 Contact: your.email@example.com
-
-
