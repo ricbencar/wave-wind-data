@@ -4,6 +4,26 @@ This repository contains a Python script to download and process **ERA5 reanalys
 
 - `download_era5_data.py` - Downloads **wave height, wave direction, peak wave period, wind speed, and wind´ direction**.
 
+## Program Options
+
+The program offers two primary modes of operation:
+
+1. **Download Mode:**
+   - **Purpose:** Retrieves the raw hourly ERA5 reanalysis data directly from the CDS API.
+   - **Functionality:** 
+     - Connects to the CDS API and downloads data in **GRIB format**.
+     - Stores the downloaded raw GRIB files in the `grib/` folder.
+     - Implements a robust retry mechanism with **exponential back-off** to handle API failures.
+   - **When to Use:** Choose this option if you require the original, unprocessed dataset or need to re-run processing steps later.
+
+2. **Processing Mode:**
+   - **Purpose:** Processes the raw GRIB files into a structured format for analysis.
+   - **Functionality:** 
+     - Extracts key meteorological and oceanographic variables such as significant wave height (`swh`), mean wave direction (`mwd`), peak wave period (`pp1d`), 10m wind speed (`wind`), and 10m wind direction (`dwi`).
+     - Compiles the extracted data into a **CSV file** saved as `results/download_era5_data.csv`.
+     - Utilizes logging (recorded in `download_era5_data.log`) to track processing steps and capture any errors.
+   - **When to Use:** Opt for this mode if you need the data in a readily analyzable CSV format or require processed data for further research.
+
 ## Features
 - Downloads hourly **ERA5 reanalysis** data.
 - Retrieves selected meteorological and oceanographic variables.

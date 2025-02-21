@@ -93,8 +93,8 @@ if __name__ == '__main__':
 LONGITUDE = -8.983333
 LATITUDE = 41.31666
 
-# Process years from START_YEAR to START_YEAR
-START_YEAR = 2025
+# Years to be processed
+START_YEAR = 1940
 START_YEAR = 2025
 YEARS = list(range(START_YEAR, END_YEAR + 1))
 
