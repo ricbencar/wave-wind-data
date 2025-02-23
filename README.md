@@ -1,43 +1,50 @@
-# Wave & Wind Hindcast Data Downloader
+# ERA5 Hourly Data Downloader and Extractor
 
-This repository contains a Python script to download and process **ERA5 reanalysis data** using the **Climate Data Store (CDS) API** provided by ECMWF. The script:
+This repository contains a Python script that interacts with ERA5 reanalysis data from ECMWF. The script can either download hourly ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract data from existing GRIB files.
 
-- `download_era5_data.py` - Downloads **wave height, wave direction, peak wave period, wind speed, and wind´ direction**.
+## Operation Modes
 
-## Program Options
+The script supports **two modes** of operation:
 
-The program offers two primary modes of operation:
+1. **Download & Process Mode**
+   - **Purpose:** Downloads ERA5 data in monthly chunks using the CDS API and processes each GRIB file.
+   - **Functionality:**
+     - Connects to the CDS API and downloads data in **GRIB format** into the `grib/` folder.
+     - Implements robust error handling with a retry mechanism using **exponential back-off**.
+     - Extracts key variables from each GRIB file and appends the processed results to a CSV file.
+     - Respects the defined time range (default: **1940 to 2025**).
+     - Logs all major steps and issues to `download_era5_data.log`.
 
-1. **Download Mode:**
-   - **Purpose:** Retrieves the raw hourly ERA5 reanalysis data directly from the CDS API.
-   - **Functionality:** 
-     - Connects to the CDS API and downloads data in **GRIB format**.
-     - Stores the downloaded raw GRIB files in the `grib/` folder.
-     - Implements a robust retry mechanism with **exponential back-off** to handle API failures.
-   - **When to Use:** Choose this option if you require the original, unprocessed dataset or need to re-run processing steps later.
+2. **Extract Only Mode**
+   - **Purpose:** Processes all existing GRIB files in the `grib/` folder without downloading new data.
+   - **Functionality:**
+     - Uses parallel processing (via `concurrent.futures`) and displays a progress bar.
+     - Ignores the defined year range and processes every GRIB file available.
+     - Combines the extracted data into a sorted CSV file for further analysis.
 
-2. **Processing Mode:**
-   - **Purpose:** Processes the raw GRIB files into a structured format for analysis.
-   - **Functionality:** 
-     - Extracts key meteorological and oceanographic variables such as significant wave height (`swh`), mean wave direction (`mwd`), peak wave period (`pp1d`), 10m wind speed (`wind`), and 10m wind direction (`dwi`).
-     - Compiles the extracted data into a **CSV file** saved as `results/download_era5_data.csv`.
-     - Utilizes logging (recorded in `download_era5_data.log`) to track processing steps and capture any errors.
-   - **When to Use:** Opt for this mode if you need the data in a readily analyzable CSV format or require processed data for further research.
+## Key Features
 
-## Features
-- Downloads hourly **ERA5 reanalysis** data.
-- Retrieves selected meteorological and oceanographic variables.
-- Uses a retry mechanism with **exponential back-off** to handle API failures.
-- Saves processed data in **CSV format** for further analysis.
-- Uses **logging** to record download and processing steps.
+- **Dual Mode Operation:** Choose between downloading new data (Download & Process) or extracting from existing GRIB files (Extract Only).
+- **Selected Variable Extraction:** Retrieves key parameters:
+  - `swh`: Significant wave height (combined wind waves and swell)
+  - `mwd`: Mean wave direction
+  - `pp1d`: Peak wave period
+  - `wind`: 10 m wind speed
+  - `dwi`: 10 m wind direction
+- **Robust Error Handling:** Uses retries with exponential back-off (default delay: 60 seconds; maximum 3 attempts) for API requests.
+- **Detailed Logging:** All download and processing activities are logged to `download_era5_data.log`.
+- **Parallel Processing:** Option 2 leverages multiprocessing with a progress bar to expedite GRIB file extraction.
+- **Performance Metrics:** Reports overall processing time along with average times per month and per year.
+- **Sorted Output:** The final CSV file is sorted by the datetime column.
 
-## Files
-| File | Description |
-|------|-------------|
-| `download_era5_data.py` | Retrieves wind and ocean wave data. |
-| `download_era5_data.log` | Log file storing execution details. |
-| `grib/` | Folder for storing raw GRIB files. |
-| `results/download_era5_data.csv` | Processed data in CSV format. |
+## Files Overview
+
+| File                               | Description                                                          |
+|------------------------------------|----------------------------------------------------------------------|
+| `download_era5_data.py`            | Main script for downloading and/or extracting ERA5 reanalysis data.  |
+| `download_era5_data.log`           | Log file capturing download and processing events.                   |
+| `grib/`                            | Directory for storing raw GRIB files.                                |
+| `results/download_era5_data.csv`   | Processed data saved in CSV format.                                  |
 
 ---
 
