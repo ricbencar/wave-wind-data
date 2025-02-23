@@ -1,6 +1,11 @@
 # ECMWF ERA5 Data Downloader and Extractor
 
-This repository contains a Python script that interacts with ERA5 reanalysis data from ECMWF. The script can either download hourly ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract data from existing GRIB files.
+This script works with ERA5 reanalysis data from ECMWF. It can either download hourly 
+ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract 
+data from existing GRIB files. The extraction process reads GRIB files, selects a set of 
+pre-defined meteorological and oceanographic variables using IDW (Inverse Distance Weighting)
+to interpolate data to an exact point, and then saves the combined data into a CSV file 
+for analysis.
 
 ## Operation Modes
 
@@ -11,7 +16,7 @@ The script supports **two modes** of operation:
    - **Functionality:**
      - Connects to the CDS API and downloads data in **GRIB format** into the `grib/` folder.
      - Implements robust error handling with a retry mechanism using **exponential back-off**.
-     - Extracts key variables from each GRIB file and appends the processed results to a CSV file.
+     - Extracts key variables from each GRIB file using IDW interpolation for an accurate estimate at the exact location.
      - Respects the defined time range (default: **1940 to 2025**).
      - Logs all major steps and issues to `download_era5_data.log`.
 
@@ -20,11 +25,12 @@ The script supports **two modes** of operation:
    - **Functionality:**
      - Uses parallel processing (via `concurrent.futures`) and displays a progress bar.
      - Ignores the defined year range and processes every GRIB file available.
-     - Combines the extracted data into a sorted CSV file for further analysis.
+     - Combines the extracted data (using the improved IDW interpolation) into a sorted CSV file for further analysis.
 
 ## Key Features
 
 - **Dual Mode Operation:** Choose between downloading new data (Download & Process) or extracting from existing GRIB files (Extract Only).
+- **Accurate Point Extraction via IDW Interpolation:** Retrieves key parameters at the exact provided coordinates using Inverse Distance Weighting (IDW) interpolation over all grid points.
 - **Selected Variable Extraction:** Retrieves key parameters:
   - `swh`: Significant wave height (combined wind waves and swell)
   - `mwd`: Mean wave direction
@@ -39,17 +45,18 @@ The script supports **two modes** of operation:
 
 ## Files Overview
 
-| File                               | Description                                                          |
-|------------------------------------|----------------------------------------------------------------------|
-| `download_era5_data.py`            | Main script for downloading and/or extracting ERA5 reanalysis data.  |
-| `download_era5_data.log`           | Log file capturing download and processing events.                   |
-| `grib/`                            | Directory for storing raw GRIB files.                                |
-| `results/download_era5_data.csv`   | Processed data saved in CSV format.                                  |
+| File                             | Description                                                         |
+|----------------------------------|---------------------------------------------------------------------|
+| `download_era5_data.py`          | Main script for downloading and/or extracting ERA5 reanalysis data. |
+| `download_era5_data.log`         | Log file capturing download and processing events.                  |
+| `grib/`                          | Directory for storing raw GRIB files.                               |
+| `results/download_era5_data.csv` | Processed data saved in CSV format.                                 |
 
 ---
 
 ## About the ERA5 Wave Model
-This dataset is derived from the **ECMWF Reanalysis v5 (ERA5) wave model**, which provides hourly estimates of essential climate variables spanning from 1940 to the present. The ERA5 wave model is a component of the ERA5 dataset, developed by the **European Centre for Medium-Range Weather Forecasts (ECMWF)**. 
+
+This dataset is derived from the **ECMWF Reanalysis v5 (ERA5) wave model**, which provides hourly estimates of essential climate variables spanning from 1940 to the present. The ERA5 wave model is a component of the ERA5 dataset, developed by the **European Centre for Medium-Range Weather Forecasts (ECMWF)**.
 
 ### ERA5 Wave Model Highlights:
 - Uses **state-of-the-art** numerical weather prediction models and data assimilation techniques.
@@ -100,11 +107,11 @@ python "download_era5_data.py"
 ```
 
 ### Configurable Parameters
-The script retrieves data for **Leixões Costeira, Porto (Portugal)** with coordinates **(41.31666°N, -8.983333°W)**. You can modify these values in the script:
+The script retrieves data at **Leixões (Porto, Portugal) Oceanic Buoy Location** with coordinates **(41.14833°N, -9.58167°W)**. You can modify these values in the script:
 
 ```python
-LONGITUDE = -8.983333
-LATITUDE = +41.31666
+LONGITUDE = -9.581666670
+LATITUDE = +41.14833299
 ```
 
 It downloads data from **1940 to 2025**. To change the time range, update:

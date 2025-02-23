@@ -9,8 +9,9 @@ Overview:
 This script works with ERA5 reanalysis data from ECMWF. It can either download hourly 
 ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract 
 data from existing GRIB files. The extraction process reads GRIB files, selects a set of 
-pre-defined meteorological and oceanographic variables, and then saves the combined data 
-into a CSV file for analysis.
+pre-defined meteorological and oceanographic variables using IDW (Inverse Distance Weighting)
+to interpolate data to an exact point, and then saves the combined data into a CSV file 
+for analysis.
 
 Key Features:
 -------------
@@ -19,12 +20,13 @@ Key Features:
     and then extracts specified variables from the resulting GRIB files.
   - **Option 2 (Extract Only)**: Skips downloading and processes all GRIB files already available 
     locally (ignoring the START_YEAR and END_YEAR range), using parallel processing with a progress bar.
-- **Selected Variable Extraction**: Extracts key parameters including:
+- **Selected Variable Extraction with IDW Interpolation**: Extracts key parameters including:
     - swh  : Significant height of combined wind waves and swell
     - mwd  : Mean wave direction
     - pp1d : Peak wave period
     - wind : 10 metre wind speed
     - dwi  : 10 metre wind direction
+  The extraction now uses IDW to interpolate data to the exact provided coordinates.
 - **Robust Error Handling & Retry Mechanism**: Uses retries with exponential back-off for downloads.
 - **Detailed Logging**: Logs every major step and potential issues to aid in debugging.
 - **Sorted Output**: The final CSV file is sorted in ascending order by the datetime column.
@@ -68,15 +70,13 @@ Script Structure:
 2. **Utility Functions**:
    - `initialize_cds_client()`: Initializes the CDS API client.
    - `download_monthly_data()`: Downloads ERA5 data for a given month with retry logic.
-   - `process_grib_file_df()`: Opens a GRIB file, extracts relevant data into a pandas DataFrame, and returns it.
+   - `process_grib_file_df()`: Opens a GRIB file, extracts relevant data into a pandas DataFrame 
+     using IDW interpolation to estimate values at the exact target coordinates, and returns it.
 3. **Main Execution Routine (`main()`)**:
    Prompts for the operation mode, then either downloads & processes data sequentially (Option 1) 
    or processes existing GRIB files in parallel (Option 2) with a progress bar to display ongoing progress.
    After processing, the final DataFrame is sorted by the datetime column before being saved.
    Overall performance is logged.
-
-Author: Your Name
-Date: YYYY-MM-DD
 """
 
 import cdsapi
@@ -96,11 +96,11 @@ if __name__ == '__main__':
     multiprocessing.set_start_method("spawn", force=True)
 
 # ----------------------------- Configuration -----------------------------
-# Target location: Leixões Costeira, Porto/Portugal
-LONGITUDE = -8.983333
-LATITUDE = 41.31666
+# Target location: LEIXOES OCEANING BUOY, Porto/Portugal
+LONGITUDE = -9.581666670
+LATITUDE = 41.14833299
 
-# Process years from give years (used only in Option 1: Download & Process)
+# Process years from given years (used only in Option 1: Download & Process)
 START_YEAR = 1940
 END_YEAR = 2025
 YEARS = list(range(START_YEAR, END_YEAR + 1))
@@ -204,10 +204,11 @@ def download_monthly_data(client, year, month, variable_list, area, grid, output
 def process_grib_file_df(file_path):
     """
     Process a GRIB file to extract selected data and return a pandas DataFrame.
-    This function first attempts to match the GRIB message using the 'shortName'
+    This function attempts to match the GRIB message using the 'shortName'
     attribute. If that fails, it constructs a parameter code using the message's 
-    parameterNumber. The grid extraction uses a 2D distance computation to 
-    correctly find the nearest point.
+    parameterNumber. Instead of using only the nearest grid point, it now employs 
+    Inverse Distance Weighting (IDW) interpolation using all points in the GRIB file 
+    to estimate the variable value at the exact provided coordinates.
     """
     try:
         import pygrib  # Import locally for each process
@@ -246,10 +247,17 @@ def process_grib_file_df(file_path):
                 continue
 
             data_array, lats, lons = grb.data()
-            # Compute 2D distance to the target coordinate and get the indices
+            # Compute 2D distances to the target coordinate
             dist = np.sqrt((lats - LATITUDE)**2 + (lons - LONGITUDE)**2)
-            i, j = np.unravel_index(dist.argmin(), dist.shape)
-            value = data_array[i, j]
+            # If a grid point is exactly at the target (or very close), use its value directly
+            if np.any(dist < 1e-6):
+                value = data_array.flat[dist.argmin()]
+            else:
+                # Apply Inverse Distance Weighting (IDW) interpolation using power p = 2
+                p = 2
+                weights = 1.0 / (dist**p)
+                value = np.sum(weights * data_array) / np.sum(weights)
+            
             if valid_time not in data_records:
                 data_records[valid_time] = {}
             data_records[valid_time][var_key] = value
