@@ -96,7 +96,7 @@ if __name__ == '__main__':
     multiprocessing.set_start_method("spawn", force=True)
 
 # ----------------------------- Configuration -----------------------------
-# Target location: LEIXOES OCEANING BUOY, Porto/Portugal
+# Target location: LEIXOES OCEANIC BUOY, Porto/Portugal
 LONGITUDE = -9.581666670
 LATITUDE = 41.14833299
 
