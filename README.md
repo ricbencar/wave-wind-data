@@ -17,7 +17,7 @@ The script supports **two modes** of operation:
      - Connects to the CDS API and downloads data in **GRIB format** into the `grib/` folder.
      - Implements robust error handling with a retry mechanism using **exponential back-off**.
      - Extracts key variables from each GRIB file using IDW interpolation for an accurate estimate at the exact location.
-     - Respects the defined time range (default: **1940 to 2025**).
+     - Respects the defined time range (default: **1940 to 2025**, takes several hours to run).
      - Logs all major steps and issues to `download_era5_data.log`.
 
 2. **Extract Only Mode**
@@ -107,7 +107,7 @@ python "download_era5_data.py"
 ```
 
 ### Configurable Parameters
-The script retrieves data at **Leixões (Porto, Portugal) Oceanic Buoy Location** with coordinates **(41.14833°N, -9.58167°W)**. You can modify these values in the script:
+The script retrieves data at **Leixões (Porto, Portugal) Oceanic Buoy** with coordinates **(41.14833°N, -9.58167°W)**. You can modify these values in the script:
 
 ```python
 LONGITUDE = -9.581666670
