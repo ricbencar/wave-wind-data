@@ -17,7 +17,7 @@ The script supports **two modes** of operation:
      - Connects to the CDS API and downloads data in **GRIB format** into the `grib/` folder.
      - Implements robust error handling with a retry mechanism using **exponential back-off**.
      - Extracts key variables from each GRIB file using IDW interpolation for an accurate estimate at the exact location.
-     - Respects the defined time range (default: **1940 to 2025**, takes several hours to run).
+     - Respects the defined time range (default: **1940 to 2025**).
      - Logs all major steps and issues to `download_era5_data.log`.
 
 2. **Extract Only Mode**
@@ -114,7 +114,7 @@ LONGITUDE = -9.581666670
 LATITUDE = +41.14833299
 ```
 
-It downloads data from **1940 to 2025**. To change the time range, update:
+It downloads data from **1940 to 2025** (notice it takes several hours to run due to MARS server high number of requests). To change the time range, update:
 
 ```python
 START_YEAR = 1940
