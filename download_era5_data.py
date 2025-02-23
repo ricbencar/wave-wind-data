@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ERA5 Hourly Data Downloader, Extractor, and Statistics Generator
+ERA5 Hourly Data Downloader and Extractor
 =================================================================
 
 Overview:
@@ -17,8 +17,8 @@ Key Features:
 - **Dual Mode Operation**:
   - **Option 1 (Download & Process)**: Downloads ERA5 data via the CDS API (in monthly chunks) 
     and then extracts specified variables from the resulting GRIB files.
-  - **Option 2 (Extract Only)**: Skips downloading and processes GRIB files already available 
-    locally. This mode processes files in parallel and displays progress via a progress bar.
+  - **Option 2 (Extract Only)**: Skips downloading and processes all GRIB files already available 
+    locally (ignoring the START_YEAR and END_YEAR range), using parallel processing with a progress bar.
 - **Selected Variable Extraction**: Extracts key parameters including:
     - swh  : Significant height of combined wind waves and swell
     - mwd  : Mean wave direction
@@ -27,13 +27,14 @@ Key Features:
     - dwi  : 10 metre wind direction
 - **Robust Error Handling & Retry Mechanism**: Uses retries with exponential back-off for downloads.
 - **Detailed Logging**: Logs every major step and potential issues to aid in debugging.
+- **Sorted Output**: The final CSV file is sorted in ascending order by the datetime column.
 - **Performance Metrics**: Computes overall processing time along with average times per month and per year.
 
 Usage:
 ------
 1. When running the script, you are prompted to choose an operation mode:
    - Option 1: Download data from the CDS API and process GRIB files.
-   - Option 2: Only extract data from existing GRIB files.
+   - Option 2: Only extract data from existing GRIB files (ignores year range and processes all files).
 2. The script then performs the selected operation and outputs performance statistics.
 
 Dependencies:
@@ -63,13 +64,19 @@ Script Structure:
 -----------------
 1. **Configuration Section**:
    Sets geographical coordinates, time range, variable codes, directory paths, and API parameters.
+   (Note: The START_YEAR and END_YEAR settings are used only in Option 1.)
 2. **Utility Functions**:
    - `initialize_cds_client()`: Initializes the CDS API client.
    - `download_monthly_data()`: Downloads ERA5 data for a given month with retry logic.
    - `process_grib_file_df()`: Opens a GRIB file, extracts relevant data into a pandas DataFrame, and returns it.
 3. **Main Execution Routine (`main()`)**:
    Prompts for the operation mode, then either downloads & processes data sequentially (Option 1) 
-   or processes existing GRIB files in parallel (Option 2). Overall performance is logged.
+   or processes existing GRIB files in parallel (Option 2) with a progress bar to display ongoing progress.
+   After processing, the final DataFrame is sorted by the datetime column before being saved.
+   Overall performance is logged.
+
+Author: Your Name
+Date: YYYY-MM-DD
 """
 
 import cdsapi
@@ -93,18 +100,18 @@ if __name__ == '__main__':
 LONGITUDE = -8.983333
 LATITUDE = 41.31666
 
-# Years to be processed
+# Process years from give years (used only in Option 1: Download & Process)
 START_YEAR = 1940
-START_YEAR = 2025
+END_YEAR = 2025
 YEARS = list(range(START_YEAR, END_YEAR + 1))
 
-# Variables to extract (mapping of short names to parameter IDs)
+# VARIABLES mapping using ERA5 parameter codes
 VARIABLES = {
-    'swh':  '140229',  # Significant height of combined wind waves and swell
-    'mwd':  '140230',  # Mean wave direction
-    'pp1d': '140231',  # Peak wave period
-    'wind': '140245',  # 10 metre wind speed
-    'dwi':  '140249'   # 10 metre wind direction
+    'swh':  '229.140',  # Significant height of combined wind waves and swell
+    'mwd':  '230.140',  # Mean wave direction
+    'pp1d': '231.140',  # Peak wave period
+    'wind': '245.140',  # 10 metre wind speed
+    'dwi':  '249.140'   # 10 metre wind direction
 }
 
 # Directories for GRIB files and output CSV
@@ -197,6 +204,10 @@ def download_monthly_data(client, year, month, variable_list, area, grid, output
 def process_grib_file_df(file_path):
     """
     Process a GRIB file to extract selected data and return a pandas DataFrame.
+    This function first attempts to match the GRIB message using the 'shortName'
+    attribute. If that fails, it constructs a parameter code using the message's 
+    parameterNumber. The grid extraction uses a 2D distance computation to 
+    correctly find the nearest point.
     """
     try:
         import pygrib  # Import locally for each process
@@ -213,16 +224,35 @@ def process_grib_file_df(file_path):
     data_records = {}
     for grb in grbs:
         try:
-            short_name = grb.shortName
             valid_time = grb.validDate.strftime('%Y-%m-%d %H:%M:%S')
-            if short_name in VARIABLES:
-                data_array, lats, lons = grb.data()
-                closest_lat_index = (np.abs(lats - LATITUDE)).argmin()
-                closest_lon_index = (np.abs(lons - LONGITUDE)).argmin()
-                value = data_array[closest_lat_index, closest_lon_index]
-                if valid_time not in data_records:
-                    data_records[valid_time] = {}
-                data_records[valid_time][short_name] = value
+            var_key = None
+
+            # First, try to use the shortName attribute (e.g., 'swh', 'mwd', etc.)
+            if grb.shortName in VARIABLES:
+                var_key = grb.shortName
+            else:
+                # Otherwise, construct a parameter code using parameterNumber (e.g., "229.140")
+                param_code = f"{grb.parameterNumber}.140"
+                if param_code in VARIABLES.values():
+                    var_key = next(key for key, val in VARIABLES.items() if val == param_code)
+            
+            if var_key is None:
+                # Log details for debugging and skip this GRIB message.
+                logging.info(
+                    f"GRIB message skipped in {os.path.basename(file_path)}: "
+                    f"shortName='{grb.shortName}', parameterNumber='{grb.parameterNumber}', "
+                    f"constructed code='{grb.parameterNumber}.140'"
+                )
+                continue
+
+            data_array, lats, lons = grb.data()
+            # Compute 2D distance to the target coordinate and get the indices
+            dist = np.sqrt((lats - LATITUDE)**2 + (lons - LONGITUDE)**2)
+            i, j = np.unravel_index(dist.argmin(), dist.shape)
+            value = data_array[i, j]
+            if valid_time not in data_records:
+                data_records[valid_time] = {}
+            data_records[valid_time][var_key] = value
         except Exception as e:
             logging.warning(f"Error processing a GRIB message in {file_path}: {e}")
             continue
@@ -243,12 +273,12 @@ def process_grib_file_df(file_path):
 # ----------------------------- Main Execution -----------------------------
 def main():
     """
-    Main function for data retrieval and processing.
+    Main function to orchestrate data retrieval and processing.
     """
     user_option = input(
         "SELECT YOUR OPTION:\n"
         "1) Download ERA5 data from CDS API and process GRIB files;\n"
-        "2) Only extract data from existing GRIB files (accelerated processing).\n"
+        "2) Only extract data from existing GRIB files.\n"
         "Choose (1 or 2): "
     )
     
@@ -260,7 +290,7 @@ def main():
     OUTPUT_CSV = os.path.join(RESULTS_DIR, 'download_era5_data.csv')
 
     if user_option == '2':
-        # Option 2: Process existing GRIB files in parallel
+        # Option 2: Process all existing GRIB files in parallel, ignoring START_YEAR and END_YEAR.
         if os.path.exists(OUTPUT_CSV):
             os.remove(OUTPUT_CSV)
             logging.info(f"Deleted existing CSV file at {OUTPUT_CSV}.")
@@ -270,9 +300,7 @@ def main():
         timeout_per_file = 120  # seconds
 
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            # Submit all tasks
             futures = {executor.submit(process_grib_file_df, os.path.join(DATA_DIR, file)): file for file in grib_files}
-            # Wrap the as_completed iterator with tqdm for a progress bar.
             for future in tqdm(as_completed(futures), total=len(futures), desc="Processing GRIB files"):
                 file = futures[future]
                 try:
@@ -290,17 +318,25 @@ def main():
 
         if dataframes:
             final_df = pd.concat(dataframes, ignore_index=True)
+            # Convert the datetime column to datetime objects and sort
+            final_df["datetime"] = pd.to_datetime(final_df["datetime"])
+            final_df.sort_values(by="datetime", inplace=True)
             final_df.to_csv(OUTPUT_CSV, index=False)
             print("Data processing completed (Option 2).")
         else:
             print("No data was extracted from any GRIB file.")
     else:
-        # Option 1: Download data and process each GRIB file sequentially
+        # Option 1: Download data and process each GRIB file sequentially (respects START_YEAR and END_YEAR)
         client = initialize_cds_client()
         variable_list = list(VARIABLES.values())
         total_requests = len(YEARS) * 12
         pbar = tqdm(total=total_requests, desc="Downloading ERA5 Data")
         
+        if not os.path.exists(OUTPUT_CSV):
+            header_df = pd.DataFrame(columns=['datetime'] + list(VARIABLES.keys()))
+            header_df.to_csv(OUTPUT_CSV, index=False)
+            logging.info(f"Created new CSV file at {OUTPUT_CSV} with headers.")
+
         for year in YEARS:
             for month in range(1, 13):
                 file_path = download_monthly_data(
@@ -309,9 +345,8 @@ def main():
                 if file_path:
                     df = process_grib_file_df(file_path)
                     if df is not None and not df.empty:
-                        write_header = not os.path.exists(OUTPUT_CSV)
-                        df.to_csv(OUTPUT_CSV, mode='a', header=write_header, index=False)
-                        logging.info(f"Processed data for {year}-{month:02d}.")
+                        df.to_csv(OUTPUT_CSV, mode='a', header=False, index=False)
+                        logging.info(f"Processed data for {year}-{month:02d} appended to CSV.")
                     else:
                         logging.error(f"Failed to process data for {year}-{month:02d}.")
                 else:
@@ -319,22 +354,25 @@ def main():
                 pbar.update(1)
                 time.sleep(REQUEST_DELAY)
         pbar.close()
+        
+        # Read the CSV file, sort by datetime, and write it back
+        try:
+            final_df = pd.read_csv(OUTPUT_CSV)
+            final_df["datetime"] = pd.to_datetime(final_df["datetime"])
+            final_df.sort_values(by="datetime", inplace=True)
+            final_df.to_csv(OUTPUT_CSV, index=False)
+            logging.info("CSV file sorted by datetime column.")
+        except Exception as e:
+            logging.error(f"Error sorting CSV file: {e}")
 
     overall_end_time = time.time()
     total_time = overall_end_time - overall_start_time
-    total_months = (len(YEARS) * 12) if user_option == '1' else len(os.listdir(DATA_DIR))
-    avg_time_per_month = total_time / total_months
-    avg_time_per_year = total_time / len(YEARS) if user_option == '1' else total_time
 
     logging.info("Data processing completed.")
     logging.info(f"Total time: {total_time:.2f} seconds")
-    logging.info(f"Average time per month: {avg_time_per_month:.2f} seconds")
-    logging.info(f"Average time per year: {avg_time_per_year:.2f} seconds")
 
     print("Data processing completed.")
     print(f"Total time: {total_time:.2f} seconds")
-    print(f"Average time per month: {avg_time_per_month:.2f} seconds")
-    print(f"Average time per year: {avg_time_per_year:.2f} seconds")
 
 if __name__ == "__main__":
     main()
