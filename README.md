@@ -1,4 +1,4 @@
-# ERA5 Hourly Data Downloader and Extractor
+# ECMWF ERA5 Data Downloader and Extractor
 
 This repository contains a Python script that interacts with ERA5 reanalysis data from ECMWF. The script can either download hourly ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract data from existing GRIB files.
 
