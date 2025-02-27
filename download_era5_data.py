@@ -36,7 +36,7 @@ Usage:
 ------
 1. When running the script, you are prompted to choose an operation mode:
    - Option 1: Download data from the CDS API and process GRIB files.
-   - Option 2: Only extract data from existing GRIB files (ignores year range and processes all files).
+   - Option 2: Only extract data from existing GRIB files.
 2. The script then performs the selected operation and outputs performance statistics.
 
 Dependencies:
@@ -160,10 +160,14 @@ def download_monthly_data(client, year, month, variable_list, area, grid, output
     """
     Download ERA5 monthly data for a specific year and month.
     Returns the file path if successful, else None.
+    
+    The function first checks if the GRIB file already exists in the DATA_DIR.
+    If it exists, the download is skipped.
     """
     file_name = f"ERA5_{year}_{month:02d}.grib"
     file_path = os.path.join(output_dir, file_name)
     
+    # Skip download if file already exists.
     if os.path.exists(file_path):
         logging.info(f"Data for {year}-{month:02d} exists. Skipping download.")
         return file_path
@@ -360,6 +364,7 @@ def main():
                 else:
                     logging.error(f"Skipping {year}-{month:02d} due to download failure.")
                 pbar.update(1)
+                # Wait only after a download attempt (even if skipped, to maintain pacing)
                 time.sleep(REQUEST_DELAY)
         pbar.close()
         
