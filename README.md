@@ -1,157 +1,53 @@
-# ECMWF ERA5 Data Downloader and Extractor
+# ERA5 Hourly Data Downloader and Extractor
 
-This script works with ERA5 reanalysis data from ECMWF. It can either download hourly 
-ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract 
-data from existing GRIB files. The extraction process reads GRIB files, selects a set of 
-pre-defined meteorological and oceanographic variables using IDW (Inverse Distance Weighting)
-to interpolate data to an exact point, and then saves the combined data into a CSV file 
-for analysis.
+## Overview:
+This script is designed to work with ERA5 reanalysis data from ECMWF using both the CDS API and the MARS (Meteorological Archive and Retrieval System). MARS is ECMWF’s archive retrieval system that enables users to request data using a strictly defined syntax. Detailed information on MARS request syntax and best practices can be found in the official [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
 
-## Operation Modes
+The script supports two operational modes:
+1. **Download & Process:**
+    - Downloads ERA5 data in monthly chunks from the CDS API (using MARS syntax rules).
+    - Processes the resulting GRIB files to extract a pre-defined set of meteorological and oceanographic variables using Inverse Distance Weighting (IDW) for interpolation.
+    - Saves the combined data into a CSV file, sorted by datetime.
 
-The script supports **two modes** of operation:
+2. **Extract Only:**
+    - Skips the download phase and directly processes all available GRIB files locally.
+    - Uses parallel processing with progress monitoring to efficiently extract data.
+    - In addition to matching GRIB messages by their short names, it also extracts data using param IDs when available.
 
-1. **Download & Process Mode**
-   - **Purpose:** Downloads ERA5 data in monthly chunks using the CDS API and processes each GRIB file.
-   - **Functionality:**
-     - Connects to the CDS API and downloads data in **GRIB format** into the `grib/` folder.
-     - Implements robust error handling with a retry mechanism using **exponential back-off**.
-     - Extracts key variables from each GRIB file using IDW interpolation for an accurate estimate at the exact location.
-     - Respects the defined time range (default: **1940 to 2025**).
-     - Logs all major steps and issues to `download_era5_data.log`.
+## Detailed Functionality:
+1. **CDS API and MARS Requests:**
+   - The request dictionary is built following the strict syntax required by the MARS system. For example, keys such as `product_type`, `format`, `param`, `year`, `month`, `day`, `time`, `area`, and `grid` must be provided in the correct format.
+   - This script builds the request using only official ERA5 param IDs (as strings) to avoid ambiguity.
+   - The `area` key is specified as `[North, West, South, East]` and `time` values are provided in "HH:00:00" format.
+   - For further details, refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
 
-2. **Extract Only Mode**
-   - **Purpose:** Processes all existing GRIB files in the `grib/` folder without downloading new data.
-   - **Functionality:**
-     - Uses parallel processing (via `concurrent.futures`) and displays a progress bar.
-     - Ignores the defined year range and processes every GRIB file available.
-     - Combines the extracted data (using the improved IDW interpolation) into a sorted CSV file for further analysis.
+2. **Unified Variable Mapping:**
+   - A unified dictionary called `VARIABLES` contains both the official ERA5 param ID and the expected GRIB short name for each variable.
+   - From this mapping, a list of param IDs (`PARAM_IDS`) is derived for the CDS API request and a GRIB message key mapping (`GRIB_KEY_MAP`) is created to map the GRIB message short names to internal keys.
 
-## Key Features
+3. **GRIB File Processing:**
+   - GRIB files are processed using the `pygrib` library.
+   - For each GRIB message, the script first attempts to match the short name to our internal keys.
+   - If the short name is not found, it falls back to comparing the GRIB message’s parameter number (if available) to the expected param IDs.
+   - The script uses Inverse Distance Weighting (IDW) interpolation to estimate the value at the target coordinate.
+   - Extracted data from all GRIB files are combined into a pandas DataFrame, sorted by datetime, and exported as a CSV file.
 
-- **Dual Mode Operation:** Choose between downloading new data (Download & Process) or extracting from existing GRIB files (Extract Only).
-- **Accurate Point Extraction via IDW Interpolation:** Retrieves key parameters at the exact provided coordinates using Inverse Distance Weighting (IDW) interpolation over all grid points.
-- **Selected Variable Extraction:** Retrieves key parameters:
-  - `swh`: Significant wave height (combined wind waves and swell)
-  - `mwd`: Mean wave direction
-  - `pp1d`: Peak wave period
-  - `wind`: 10 m wind speed
-  - `dwi`: 10 m wind direction
-- **Robust Error Handling:** Uses retries with exponential back-off (default delay: 60 seconds; maximum 3 attempts) for API requests.
-- **Detailed Logging:** All download and processing activities are logged to `download_era5_data.log`.
-- **Parallel Processing:** Option 2 leverages multiprocessing with a progress bar to expedite GRIB file extraction.
-- **Performance Metrics:** Reports overall processing time along with average times per month and per year.
-- **Sorted Output:** The final CSV file is sorted by the datetime column.
+4. **Robust Error Handling and Logging:**
+   - Detailed logging records each major step and any encountered issues.
+   - The download process is retried multiple times with increasing delay intervals if failures occur.
+   - After processing, the script checks for missing monthly GRIB files and issues warnings accordingly.
 
-## Files Overview
+## Usage:
+When executed, the user is prompted to choose between:
+- **Option 1:** Download ERA5 data via the CDS API (using MARS syntax) and process the downloaded GRIB files.
+- **Option 2:** Only process existing GRIB files in the data directory.
 
-| File                             | Description                                                         |
-|----------------------------------|---------------------------------------------------------------------|
-| `download_era5_data.py`          | Main script for downloading and/or extracting ERA5 reanalysis data. |
-| `download_era5_data.log`         | Log file capturing download and processing events.                  |
-| `grib/`                          | Directory for storing raw GRIB files.                               |
-| `results/download_era5_data.csv` | Processed data saved in CSV format.                                 |
+Dependencies include Python 3.x and libraries such as `cdsapi`, `pygrib`, `pandas`, `numpy`, `tqdm`, and `logging`.  
+**Note:** ECCODES is required for the proper functioning of `pygrib`.
 
----
+## ECMWF Data Information:
+- **Website:** [ECMWF](https://www.ecmwf.int)
+- **ERA5 reanalysis dataset:** [ERA5 Dataset](https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5)
+- **Parameter reference:** [Parameter Database](https://codes.ecmwf.int/grib/param-db/)
 
-## About the ERA5 Wave Model
-
-This dataset is derived from the **ECMWF Reanalysis v5 (ERA5) wave model**, which provides hourly estimates of essential climate variables spanning from 1940 to the present. The ERA5 wave model is a component of the ERA5 dataset, developed by the **European Centre for Medium-Range Weather Forecasts (ECMWF)**.
-
-### ERA5 Wave Model Highlights:
-- Uses **state-of-the-art** numerical weather prediction models and data assimilation techniques.
-- Provides **hourly data** at a **31 km horizontal resolution** globally.
-- Includes **wind-wave interactions, swell propagation, and wave generation** mechanisms.
-- Incorporates **satellite observations, buoy measurements, and reanalysis techniques** to improve accuracy.
-- Supplies a comprehensive **historical dataset** for research, operational forecasting, and climate applications.
-
-More details can be found at:
-- [ERA5 Single Levels Dataset](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview)
-- [ECMWF ERA5 Overview](https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5)
-
----
-
-## Installation
-### Install Dependencies
-Ensure you have **Python 3.x** installed. Then install the required libraries using **Conda**:
-
-```sh
-conda install -c conda-forge eccodes cdsapi pygrib pandas tqdm
-```
-
-Alternatively, use **pip**:
-
-```sh
-pip install cdsapi pygrib pandas tqdm
-```
-
-### Set Up CDS API Key
-1. Register for an **ECMWF account** at: [CDS Registration](https://cds.climate.copernicus.eu/user/register)
-2. Obtain your **API key** from: [CDS API](https://cds.climate.copernicus.eu/api-how-to)
-3. Create a `.cdsapirc` file in your home directory (`~/.cdsapirc` on Linux/Mac, `C:\Users\YourName\.cdsapirc` on Windows):
-
-```ini
-url: https://cds.climate.copernicus.eu/api/v2
-key: YOUR-USER-ID:YOUR-API-KEY
-verify: 1
-```
-
----
-
-## Usage
-### Run the Script
-Use the following command to run the script:
-
-```sh
-python "download_era5_data.py"
-```
-
-### Configurable Parameters
-The script retrieves data at **Leixões (Porto, Portugal) Oceanic Buoy** with coordinates **(41.14833°N, -9.58167°W)**. You can modify these values in the script:
-
-```python
-LONGITUDE = -9.581666670
-LATITUDE = +41.14833299
-```
-
-It downloads data from **1940 to 2025** (notice it takes several hours to run due to MARS server high number of requests). To change the time range, update:
-
-```python
-START_YEAR = 1940
-END_YEAR = 2025
-```
-
-### Variables Retrieved
-| Variable | Short Name | Description |
-|----------|-----------|-------------|
-| `swh` | 140229 | Significant height of combined wind waves and swell |
-| `mwd` | 140230 | Mean wave direction |
-| `pp1d` | 140231 | Peak wave period |
-| `wind` | 140245 | 10m wind speed |
-| `dwi` | 140249 | 10m wind direction |
-
----
-
-## Data Storage
-The downloaded data is stored in:
-- **GRIB files** in the `grib/` folder.
-- **Processed CSV data** in `results/download_era5_data.csv`.
-
-A sample CSV row looks like:
-
-```csv
-datetime,swh,mwd,pp1d,wind,dwi
-1940-01-01 00:00:00,2.5,280,8.0,5.2,220
-```
-
----
-
-## References
-- [CDS API Installation](https://confluence.ecmwf.int/display/CKB/How+to+install+and+use+CDS+API+on+Windows)
-- [CDS Documentation](https://confluence.ecmwf.int/display/CKB/Climate+Data+Store+%28CDS%29+documentation)
-- [ERA5 Single Levels Dataset](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview)
-- [ECMWF ERA5 Overview](https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5)
-- [Ocean wave model output parameters](https://confluence.ecmwf.int/download/attachments/59774192/wave_parameters.pdf)
-- [Parameter Info](https://codes.ecmwf.int/grib/param-db/)
-
----
+For more detailed information on CDS API and MARS request syntax, please refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
