@@ -6,59 +6,70 @@ ERA5 Hourly Data Downloader and Extractor
 
 Overview:
 ---------
-This script works with ERA5 reanalysis data from ECMWF. It can either download hourly 
-ERA5 data via the CDS API and process the resulting GRIB files, or it can solely extract 
-data from existing GRIB files. The extraction process reads GRIB files, selects a set of 
-pre-defined meteorological and oceanographic variables using IDW (Inverse Distance Weighting)
-to interpolate data to an exact point, and then saves the combined data into a CSV file 
-for analysis.
+This script is designed to work with ERA5 reanalysis data from ECMWF using both the CDS API
+and the MARS (Meteorological Archive and Retrieval System). MARS is ECMWF’s archive retrieval
+system that enables users to request data using a strictly defined syntax. Detailed information 
+on MARS request syntax and best practices can be found in the official MARS User Documentation:
+https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation
 
-Key Features:
--------------
-- **Dual Mode Operation**:
-  - **Option 1 (Download & Process)**: Downloads ERA5 data via the CDS API (in monthly chunks) 
-    and then extracts specified variables from the resulting GRIB files. In this update the 
-    download phase is decoupled from the extraction phase so that once files are present, 
-    they are processed concurrently.
-  - **Option 2 (Extract Only)**: Skips downloading and processes all GRIB files already available 
-    locally (ignoring the START_YEAR and END_YEAR range), using parallel processing with a progress bar.
-- **Selected Variable Extraction with IDW Interpolation**: The script extracts key parameters:
-    - swh  : Significant height of combined wind waves and swell
-    - mwd  : Mean wave direction
-    - pp   : Peak wave period
-    - u10  : 10m u-component of wind
-    - v10  : 10m v-component of wind
-  The extraction uses IDW to interpolate the data to the exact provided coordinates.
-- **Robust Error Handling & Retry Mechanism:** Downloads are retried (with delay) up to a maximum number of attempts.
-- **Detailed Logging:** Logs every major step and potential issues.
-- **Sorted Output:** The final CSV file is sorted by the datetime column.
-- **Performance Metrics:** Overall processing time is logged.
-- **Missing File Warning:** After processing, the script checks the entire years range specified by the user and warns if any monthly GRIB files are missing.
+The script supports two operational modes:
+    1. Download & Process:
+         - Downloads ERA5 data in monthly chunks from the CDS API (using MARS syntax rules).
+         - Processes the resulting GRIB files to extract a pre-defined set of meteorological 
+           and oceanographic variables using Inverse Distance Weighting (IDW) for interpolation.
+         - Saves the combined data into a CSV file, sorted by datetime.
+    2. Extract Only:
+         - Skips the download phase and directly processes all available GRIB files locally.
+         - Uses parallel processing with progress monitoring to efficiently extract data.
+         - In addition to matching GRIB messages by their short names, it also extracts data 
+           using param IDs when available.
+
+Detailed Functionality:
+------------------------
+1. CDS API and MARS Requests:
+   - The request dictionary is built following the strict syntax required by the MARS system.
+     For example, keys such as 'product_type', 'format', 'param', 'year', 'month', 'day', 'time', 
+     'area', and 'grid' must be provided in the correct format.
+   - This script builds the request using only official ERA5 param IDs (as strings) to avoid ambiguity.
+   - The 'area' key is specified as [North, West, South, East] and 'time' values are provided in "HH:00:00" format.
+   - For further details, refer to:
+     https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation
+
+2. Unified Variable Mapping:
+   - A unified dictionary called `VARIABLES` contains both the official ERA5 param ID and the expected 
+     GRIB short name for each variable.
+   - From this mapping, a list of param IDs (`PARAM_IDS`) is derived for the CDS API request and a 
+     GRIB message key mapping (`GRIB_KEY_MAP`) is created to map the GRIB message short names to internal keys.
+
+3. GRIB File Processing:
+   - GRIB files are processed using the pygrib library.
+   - For each GRIB message, the script first attempts to match the short name to our internal keys.
+   - If the short name is not found, it falls back to comparing the GRIB message’s parameter number 
+     (if available) to the expected param IDs.
+   - The script uses Inverse Distance Weighting (IDW) interpolation to estimate the value at the target coordinate.
+   - Extracted data from all GRIB files are combined into a pandas DataFrame, sorted by datetime, and exported as a CSV file.
+
+4. Robust Error Handling and Logging:
+   - Detailed logging records each major step and any encountered issues.
+   - The download process is retried multiple times with increasing delay intervals if failures occur.
+   - After processing, the script checks for missing monthly GRIB files and issues warnings accordingly.
 
 Usage:
 ------
-1. At runtime you are prompted to choose:
-   - Option 1: Download data from the CDS API and process GRIB files.
-   - Option 2: Only extract data from existing GRIB files.
-2. The script then executes the selected mode and outputs performance statistics, including warnings for any missing monthly GRIB files.
-
-Dependencies:
--------------
-- Python 3.x
-- Libraries:
-    - cdsapi
-    - pygrib
-    - pandas
-    - numpy
-    - tqdm
-    - logging
-- ECCODES is required for pygrib.
+When executed, the user is prompted to choose between:
+    - Option 1: Download ERA5 data via the CDS API (using MARS syntax) and process the downloaded GRIB files.
+    - Option 2: Only process existing GRIB files in the data directory.
+Dependencies include Python 3.x and libraries such as cdsapi, pygrib, pandas, numpy, tqdm, and logging.
+Note: ECCODES is required for proper functioning of pygrib.
 
 ECMWF Data Information:
 -----------------------
 - Website: https://www.ecmwf.int
 - ERA5 reanalysis dataset: https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5
 - Parameter reference: https://codes.ecmwf.int/grib/param-db/
+
+For more detailed information on CDS API and MARS request syntax, please refer to:
+https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation
 """
 
 import cdsapi
@@ -73,36 +84,50 @@ import logging
 from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError
 import multiprocessing
 
-# Use "spawn" start method for better compatibility with C libraries (e.g., ECCODES/pygrib)
+# Use the "spawn" start method for better compatibility with C libraries (e.g., ECCODES/pygrib)
 if __name__ == '__main__':
     multiprocessing.set_start_method("spawn", force=True)
+
+# ----------------------------- Unified Variable Mapping -----------------------------
+# The VARIABLES dictionary defines each variable to be processed.
+# Each key represents the internal variable name and its value is a dictionary with:
+#   - 'param_id': The official ERA5 param ID used in the CDS/MARS request.
+#   - 'grib_short': The expected GRIB message short name in the downloaded files.
+# This unified mapping reduces redundancy and improves maintainability.
+VARIABLES = {
+    'swh':  {'param_id': '140229', 'grib_short': 'swh'},   # Significant height of combined wind waves and swell
+    'mwd':  {'param_id': '140230', 'grib_short': 'mwd'},    # Mean wave direction
+    'pp1d': {'param_id': '140231', 'grib_short': 'pp1d'},   # Peak wave period
+    'wind': {'param_id': '140245', 'grib_short': 'wind'},   # 10 metre wind speed
+    'dwi':  {'param_id': '140249', 'grib_short': 'dwi'}     # 10 metre wind direction
+}
+
+# Derive the list of param IDs for the CDS API/MARS request.
+PARAM_IDS = [v['param_id'] for v in VARIABLES.values()]
+
+# Derive the mapping for GRIB processing.
+# This maps the GRIB message short name (as provided in the downloaded files)
+# to our internal variable key.
+GRIB_KEY_MAP = {v['grib_short']: key for key, v in VARIABLES.items()}
 
 # ----------------------------- Configuration -----------------------------
 # Target location: LEIXOES OCEANIC BUOY, Porto/Portugal
 LONGITUDE = -9.581666670
 LATITUDE = 41.14833299
 
-# Process years (used in Option 1)
+# Process years (used in Option 1). Note: ERA5 standard reanalysis is typically available from ~1950/1959 onwards.
 START_YEAR = 1940
 END_YEAR = 2025
 YEARS = list(range(START_YEAR, END_YEAR + 1))
 
-# Official ERA5 variable names for CDS API requests.
-VARIABLES = {
-    'swh': 'significant_height_of_combined_wind_waves_and_swell',
-    'mwd': 'mean_wave_direction',
-    'pp':  'peak_wave_period',
-    'u10': '10m_u_component_of_wind',
-    'v10': '10m_v_component_of_wind'
-}
-
-# Directories for GRIB files and output CSV
+# Directories for GRIB files and output CSV.
 DATA_DIR = 'grib'
 RESULTS_DIR = 'results'
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# Define bounding box (degrees) for the target area.
+# Define the bounding box (degrees) for the target area.
+# Format: [North, West, South, East] as required by the MARS request.
 BUFFER = 0.25
 NORTH = LATITUDE + BUFFER
 SOUTH = LATITUDE - BUFFER
@@ -110,14 +135,14 @@ EAST = LONGITUDE + BUFFER
 WEST = LONGITUDE - BUFFER
 AREA = [NORTH, WEST, SOUTH, EAST]
 
-# Grid resolution for extraction
+# Grid resolution for extraction.
 GRID = [0.25, 0.25]
 
-# Delay and retry configuration
-REQUEST_DELAY = 60  # seconds
-MAX_RETRIES = 3
+# Delay and retry configuration for the CDS API request.
+REQUEST_DELAY = 120  # seconds delay between requests (to avoid overloading the server)
+MAX_RETRIES = 5
 
-# Logging configuration
+# Logging configuration.
 LOG_FILE = 'download_era5_data.log'
 logging.basicConfig(
     filename=LOG_FILE,
@@ -129,6 +154,9 @@ logging.basicConfig(
 def warn_missing_files(years, data_dir):
     """
     Check for missing monthly GRIB files in the specified years range and warn the user.
+
+    This function scans the data directory for expected GRIB files (one per month per year)
+    and logs any files that are missing. This helps in ensuring data completeness.
     """
     missing = []
     for year in years:
@@ -147,7 +175,13 @@ def warn_missing_files(years, data_dir):
         logging.info(info_msg)
 
 def initialize_cds_client():
-    """Initialize and return the CDS API client."""
+    """
+    Initialize and return the CDS API client.
+
+    The CDS API client allows the script to interface with the ECMWF CDS/MARS system to request data.
+    For more details on the CDS API and its configuration, refer to the MARS User Documentation:
+    https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation
+    """
     try:
         client = cdsapi.Client()
         logging.info("CDS API client initialized successfully.")
@@ -156,11 +190,33 @@ def initialize_cds_client():
         logging.error(f"Failed to initialize CDS API client. Error: {e}")
         sys.exit(1)
 
-def download_monthly_data(client, year, month, variable_list, area, grid, output_dir):
+def download_monthly_data(client, year, month, area, grid, output_dir):
     """
-    Download ERA5 monthly data for a given year and month.
-    Returns a tuple (file_path, downloaded) where downloaded is True if a new download was performed.
-    If the file exists, the download is skipped.
+    Download ERA5 monthly data for a given year and month using param IDs.
+
+    The request dictionary is built following the strict syntax required by the MARS system,
+    as documented in the official MARS User Documentation:
+    https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation
+    Key elements include:
+        - 'product_type': Typically set to 'reanalysis'.
+        - 'format': The desired output format, here 'grib'.
+        - 'param': List of parameter IDs (using PARAM_IDS derived from VARIABLES).
+        - 'year', 'month', 'day', 'time': Date and time specifications (with 'time' in HH:00:00 format).
+        - 'area': The geographical bounding box defined as [North, West, South, East].
+        - 'grid': The resolution of the grid.
+
+    If the data file already exists locally, the download is skipped.
+
+    Parameters:
+        client (cdsapi.Client): The CDS API client instance.
+        year (int): Year for which data is requested.
+        month (int): Month for which data is requested.
+        area (list): Geographical bounding box.
+        grid (list): Grid resolution.
+        output_dir (str): Directory to store the downloaded GRIB file.
+
+    Returns:
+        tuple: (file_path, downloaded) where downloaded is True if a new download occurred.
     """
     file_name = f"ERA5_{year}_{month:02d}.grib"
     file_path = os.path.join(output_dir, file_name)
@@ -172,25 +228,23 @@ def download_monthly_data(client, year, month, variable_list, area, grid, output
     days_in_month = calendar.monthrange(year, month)[1]
     days = [f"{d:02d}" for d in range(1, days_in_month + 1)]
     
+    # Build the request dictionary using only the 'param' key with our unified param IDs.
+    request_dict = {
+        'product_type': 'reanalysis',
+        'format': 'grib',
+        'param': PARAM_IDS,
+        'year': [str(year)],
+        'month': [f"{month:02d}"],
+        'day': days,
+        'time': [f"{h:02d}:00" for h in range(24)],
+        'area': area,  # Format: [North, West, South, East]
+        'grid': grid,
+    }
+
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             logging.info(f"Attempt {attempt}: Downloading data for {year}-{month:02d}...")
-            # Pass year and month as lists per CDS API requirements.
-            client.retrieve(
-                'reanalysis-era5-single-levels',
-                {
-                    'product_type': 'reanalysis',
-                    'format': 'grib',
-                    'variable': variable_list,
-                    'year': [str(year)],
-                    'month': [f"{month:02d}"],
-                    'day': days,
-                    'time': [f"{h:02d}:00" for h in range(24)],
-                    'area': area,
-                    'grid': grid,
-                },
-                file_path
-            )
+            client.retrieve('reanalysis-era5-single-levels', request_dict, file_path)
             logging.info(f"Successfully downloaded data for {year}-{month:02d}.")
             return file_path, True
         except Exception as e:
@@ -206,7 +260,21 @@ def download_monthly_data(client, year, month, variable_list, area, grid, output
 def process_grib_file_df(file_path):
     """
     Process a GRIB file to extract selected data and return a pandas DataFrame.
-    Uses IDW interpolation to estimate the value at the target coordinate.
+
+    This function opens a GRIB file using the pygrib library, iterates through each GRIB message,
+    and uses Inverse Distance Weighting (IDW) interpolation to estimate the value at the target coordinate.
+    If an exact grid point match is found, that value is used directly.
+    
+    The GRIB messages are first filtered by checking if their short name matches our expected keys.
+    If not, the function falls back to checking the message's parameter number (if available) against
+    our expected ERA5 param IDs. This allows Option 2 to extract data using param IDs as well.
+
+    Parameters:
+        file_path (str): The path to the GRIB file to be processed.
+
+    Returns:
+        pandas.DataFrame or None: DataFrame containing the extracted data (with a 'datetime' column),
+        or None if no data was extracted.
     """
     try:
         import pygrib  # Local import for each process
@@ -220,59 +288,76 @@ def process_grib_file_df(file_path):
         logging.error(f"Failed to open {file_path}. Error: {e}")
         return None
 
-    # Map GRIB message short names to our keys.
-    GRIB_KEY_MAP = {
-        'swh': 'swh',
-        'mwd': 'mwd',
-        'pp':  'pp',
-        'u10': 'u10',
-        'v10': 'v10'
-    }
     data_records = {}
+    
     for grb in grbs:
         try:
             valid_time = grb.validDate.strftime('%Y-%m-%d %H:%M:%S')
             var_key = None
+            # First, try to match using GRIB message short name.
             if grb.shortName in GRIB_KEY_MAP:
                 var_key = GRIB_KEY_MAP[grb.shortName]
             else:
-                logging.info(f"Skipping GRIB message with shortName '{grb.shortName}' in {os.path.basename(file_path)}.")
+                # Fallback: try matching using parameter number (param id).
+                try:
+                    param_num = grb.parameterNumber  # Typically an integer.
+                except AttributeError:
+                    param_num = None
+                if param_num is not None:
+                    for key, value in VARIABLES.items():
+                        if int(value['param_id']) == param_num:
+                            var_key = key
+                            break
+            # Skip this message if no matching variable is found.
+            if var_key is None:
                 continue
 
             data_array, lats, lons = grb.data()
             dist = np.sqrt((lats - LATITUDE)**2 + (lons - LONGITUDE)**2)
+            # Apply IDW interpolation.
             if np.any(dist < 1e-6):
+                # Use exact grid point value if available.
                 value = data_array.flat[dist.argmin()]
             else:
-                p = 2  # IDW power
+                p = 2  # IDW power factor.
                 weights = 1.0 / (dist**p)
                 value = np.sum(weights * data_array) / np.sum(weights)
+
             if valid_time not in data_records:
                 data_records[valid_time] = {}
             data_records[valid_time][var_key] = value
         except Exception as e:
             logging.warning(f"Error processing a GRIB message in {file_path}: {e}")
             continue
+
     grbs.close()
     if not data_records:
         logging.warning(f"No data extracted from {file_path}.")
         return None
+
     records = []
     for dt, vars_data in data_records.items():
         row = {'datetime': dt}
-        for key in GRIB_KEY_MAP.values():
+        for key in VARIABLES.keys():
             row[key] = vars_data.get(key, None)
         records.append(row)
+
     return pd.DataFrame(records)
 
 # ----------------------------- Main Execution -----------------------------
 def main():
     """
     Main function to orchestrate data retrieval and processing.
-    For Option 1, the download (or verification) phase is sequential; then GRIB extraction
-    is performed in parallel.
-    After processing, the script warns the user if any monthly GRIB files in the specified
-    years range are missing.
+
+    This function prompts the user to choose between two operational modes:
+        1. Download ERA5 data via the CDS API (using MARS syntax) and then process the GRIB files.
+        2. Only process existing GRIB files in the data directory.
+
+    After processing, the script checks for any missing GRIB files in the specified years range,
+    logs performance metrics, and saves the output CSV sorted by datetime.
+
+    For detailed information on the CDS API and MARS request syntax, please refer to:
+    https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation
     """
     user_option = input(
         "SELECT YOUR OPTION:\n"
@@ -294,7 +379,7 @@ def main():
             logging.info(f"Deleted existing CSV file at {OUTPUT_CSV}.")
         grib_files = sorted([os.path.join(DATA_DIR, f) for f in os.listdir(DATA_DIR) if f.endswith('.grib')])
         dataframes = []
-        timeout_per_file = 120  # seconds
+        timeout_per_file = 120  # seconds per file processing timeout.
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = {executor.submit(process_grib_file_df, file): file for file in grib_files}
             for future in tqdm(as_completed(futures), total=len(futures), desc="Processing GRIB files"):
@@ -322,22 +407,24 @@ def main():
     else:
         # Option 1: Download (or verify) files sequentially, then process in parallel.
         client = initialize_cds_client()
-        variable_list = list(VARIABLES.values())
         total_requests = len(YEARS) * 12
         pbar = tqdm(total=total_requests, desc="Downloading ERA5 Data")
         grib_files_to_process = []
         for year in YEARS:
             for month in range(1, 13):
-                file_path, downloaded = download_monthly_data(client, year, month, variable_list, AREA, GRID, DATA_DIR)
+                file_path, downloaded = download_monthly_data(client, year, month, AREA, GRID, DATA_DIR)
                 if file_path:
                     grib_files_to_process.append(file_path)
                 pbar.update(1)
                 if downloaded:
                     time.sleep(REQUEST_DELAY)
         pbar.close()
-        # Process all collected GRIB files in parallel.
+
+        if os.path.exists(OUTPUT_CSV):
+            os.remove(OUTPUT_CSV)
+            logging.info(f"Deleted existing CSV file at {OUTPUT_CSV}.")
         dataframes = []
-        timeout_per_file = 120  # seconds
+        timeout_per_file = 120  # seconds per file processing timeout.
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = {executor.submit(process_grib_file_df, file): file for file in grib_files_to_process}
             for future in tqdm(as_completed(futures), total=len(futures), desc="Processing GRIB files"):
@@ -354,6 +441,7 @@ def main():
                     future.cancel()
                 except Exception as exc:
                     logging.error(f"Exception while processing {file}: {exc}")
+
         if dataframes:
             final_df = pd.concat(dataframes, ignore_index=True)
             final_df["datetime"] = pd.to_datetime(final_df["datetime"])
@@ -363,7 +451,7 @@ def main():
         else:
             logging.error("No data was extracted in Option 1.")
             print("No data was extracted in Option 1.")
-    
+
     # After processing, warn the user if any monthly GRIB files are missing.
     warn_missing_files(YEARS, DATA_DIR)
     
@@ -373,6 +461,7 @@ def main():
     logging.info(f"Total time: {total_time:.2f} seconds")
     print("Data processing completed.")
     print(f"Total time: {total_time:.2f} seconds")
+
 
 if __name__ == "__main__":
     main()
