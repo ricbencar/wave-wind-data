@@ -84,7 +84,7 @@ LATITUDE = 41.14833299
 
 # Process years (used in Option 1). Note: ERA5 standard reanalysis is typically available from ~1950/1959 onwards.
 START_YEAR = 1940
-END_YEAR = 2025
+END_YEAR = 2024
 YEARS = list(range(START_YEAR, END_YEAR + 1))
 
 # Directories for GRIB files and output CSV.
