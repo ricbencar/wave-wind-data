@@ -3,7 +3,7 @@
 ## Overview:
 
 This script is designed to work with ERA5 reanalysis data from ECMWF using both the CDS API and the MARS (Meteorological Archive and Retrieval System). MARS is ECMWF’s archive retrieval system that enables users to request data using a strictly defined syntax. Detailed information on MARS request syntax and best practices can be found in the official [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
-(https://github.com/user-attachments/assets/c3d475af-8c52-497c-a51a-dc59fa92a0c7)
+![Alt text](https://github.com/user-attachments/assets/c3d475af-8c52-497c-a51a-dc59fa92a0c7)
 The script supports two operational modes:
 
 1. **Download & Process:**
