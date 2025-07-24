@@ -3,6 +3,7 @@
 ## Overview:
 
 This script is designed to work with ERA5 reanalysis data from ECMWF using both the CDS API and the MARS (Meteorological Archive and Retrieval System). MARS is ECMWF’s archive retrieval system that enables users to request data using a strictly defined syntax. Detailed information on MARS request syntax and best practices can be found in the official [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
+(https://github.com/user-attachments/assets/c3d475af-8c52-497c-a51a-dc59fa92a0c7)
 The script supports two operational modes:
 
 1. **Download & Process:**
@@ -80,7 +81,6 @@ To run `download_era5 (swh mwd pp1d wind dwi).py`, you need to install Python 3.
 ```
 sudo apt-get update
 sudo apt-get install libeccodes-dev
-
 ```
 
 **On CentOS/RHEL/Fedora:**
@@ -89,14 +89,12 @@ sudo apt-get install libeccodes-dev
 sudo yum install eccodes-devel
 # Or for Fedora:
 sudo dnf install eccodes-devel
-
 ```
 
 **On macOS (using Homebrew):**
 
 ```
 brew install eccodes
-
 ```
 
 **On Windows:**
@@ -122,7 +120,6 @@ pip install cdsapi==1.1.0 \
             pandas==2.3.1 \
             numpy==2.0.2 \
             tqdm==4.66.4
-
 ```
 
 *Note: The versions listed above are those found to be compatible with the script from the provided `requirements.txt` file. While `logging` is a standard Python library and doesn't require separate installation, it's included in the script's dependencies.*
@@ -135,7 +132,6 @@ You can compile the script into a standalone executable using `PyInstaller`. Thi
 
    ```
    pip install pyinstaller
-   
    ```
 
 2. **Compile the script:**
@@ -143,7 +139,6 @@ You can compile the script into a standalone executable using `PyInstaller`. Thi
 
    ```
    pyinstaller -F "download_era5 (swh mwd pp1d wind dwi).py"
-   
    ```
 
    * The `-F` (or `--onefile`) option bundles everything into a single executable file.
