@@ -87,7 +87,7 @@ It's highly recommended to use a virtual environment to manage dependencies for 
 2.  **Create a virtual environment:**
 
     ```bash
-    python3 -m venv venv_era5_data
+    python3 -m venv era5env
     ```
 
     (You can replace `venv_era5_data` with your preferred environment name.)
@@ -97,10 +97,10 @@ It's highly recommended to use a virtual environment to manage dependencies for 
     * **On Windows:**
 
         ```bash
-        .\venv_era5_data\Scripts\activate
+        .\era5env\Scripts\activate
         ```
 
-    Your terminal prompt should change to indicate that the virtual environment is active (e.g., `(venv_era5_data) user@host:~`).
+    Your terminal prompt should change to indicate that the virtual environment is active (e.g., `(era5env) user@host:~`).
 
 4.  **Install the required Python packages:**
 
