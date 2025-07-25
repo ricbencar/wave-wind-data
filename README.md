@@ -6,59 +6,59 @@ This script is designed to work with ERA5 reanalysis data from ECMWF using both 
 ![Alt text](https://github.com/user-attachments/assets/c3d475af-8c52-497c-a51a-dc59fa92a0c7)
 The script supports two operational modes:
 
-1. **Download & Process:**
+1.  **Download & Process:**
 
-   * Downloads ERA5 data in monthly chunks from the CDS API (using MARS syntax rules).
+    * Downloads ERA5 data in monthly chunks from the CDS API (using MARS syntax rules).
 
-   * Processes the resulting GRIB files to extract a pre-defined set of meteorological and oceanographic variables using Inverse Distance Weighting (IDW) for interpolation.
+    * Processes the resulting GRIB files to extract a pre-defined set of meteorological and oceanographic variables using Inverse Distance Weighting (IDW) for interpolation.
 
-   * Saves the combined data into a CSV file, sorted by datetime.
+    * Saves the combined data into a CSV file, sorted by datetime.
 
-2. **Extract Only:**
+2.  **Extract Only:**
 
-   * Skips the download phase and directly processes all available GRIB files locally.
+    * Skips the download phase and directly processes all available GRIB files locally.
 
-   * Uses parallel processing with progress monitoring to efficiently extract data.
+    * Uses parallel processing with progress monitoring to efficiently extract data.
 
-   * In addition to matching GRIB messages by their short names, it also extracts data using param IDs when available.
+    * In addition to matching GRIB messages by their short names, it also extracts data using param IDs when available.
 
 ## Detailed Functionality:
 
-1. **CDS API and MARS Requests:**
+1.  **CDS API and MARS Requests:**
 
-   * The request dictionary is built following the strict syntax required by the MARS system. For example, keys such as `product_type`, `format`, `param`, `year`, `month`, `day`, `time`, `area`, and `grid` must be provided in the correct format.
+    * The request dictionary is built following the strict syntax required by the MARS system. For example, keys such as `product_type`, `format`, `param`, `year`, `month`, `day`, `time`, `area`, and `grid` must be provided in the correct format.
 
-   * This script builds the request using only official ERA5 param IDs (as strings) to avoid ambiguity.
+    * This script builds the request using only official ERA5 param IDs (as strings) to avoid ambiguity.
 
-   * The `area` key is specified as `[North, West, South, East]` and `time` values are provided in "HH:00:00" format.
+    * The `area` key is specified as `[North, West, South, East]` and `time` values are provided in "HH:00:00" format.
 
-   * For further details, refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
+    * For further details, refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
 
-2. **Unified Variable Mapping:**
+2.  **Unified Variable Mapping:**
 
-   * A unified dictionary called `VARIABLES` contains both the official ERA5 param ID and the expected GRIB short name for each variable.
+    * A unified dictionary called `VARIABLES` contains both the official ERA5 param ID and the expected GRIB short name for each variable.
 
-   * From this mapping, a list of param IDs (`PARAM_IDS`) is derived for the CDS API request and a GRIB message key mapping (`GRIB_KEY_MAP`) is created to map the GRIB message short names to internal keys.
+    * From this mapping, a list of param IDs (`PARAM_IDS`) is derived for the CDS API request and a GRIB message key mapping (`GRIB_KEY_MAP`) is created to map the GRIB message short names to internal keys.
 
-3. **GRIB File Processing:**
+3.  **GRIB File Processing:**
 
-   * GRIB files are processed using the `pygrib` library.
+    * GRIB files are processed using the `pygrib` library.
 
-   * For each GRIB message, the script first attempts to match the short name to our internal keys.
+    * For each GRIB message, the script first attempts to match the short name to our internal keys.
 
-   * If the short name is not found, it falls back to comparing the GRIB message’s parameter number (if available) to the expected param IDs.
+    * If the short name is not found, it falls back to comparing the GRIB message’s parameter number (if available) to the expected param IDs.
 
-   * The script uses Inverse Distance Weighting (IDW) interpolation to estimate the value at the target coordinate.
+    * The script uses Inverse Distance Weighting (IDW) interpolation to estimate the value at the target coordinate.
 
-   * Extracted data from all GRIB files are combined into a pandas DataFrame, sorted by datetime, and exported as a CSV file.
+    * Extracted data from all GRIB files are combined into a pandas DataFrame, sorted by datetime, and exported as a CSV file.
 
-4. **Robust Error Handling and Logging:**
+4.  **Robust Error Handling and Logging:**
 
-   * Detailed logging records each major step and any encountered issues.
+    * Detailed logging records each major step and any encountered issues.
 
-   * The download process is retried multiple times with increasing delay intervals if failures occur.
+    * The download process is retried multiple times with increasing delay intervals if failures occur.
 
-   * After processing, the script checks for missing monthly GRIB files and issues warnings accordingly.
+    * After processing, the script checks for missing monthly GRIB files and issues warnings accordingly.
 
 ## Usage:
 
@@ -70,89 +70,92 @@ When executed, the user is prompted to choose between:
 
 ## Installation:
 
-To run `download_era5 (swh mwd pp1d wind dwi).py`, you need to install Python 3.x and several libraries. Additionally, `ECCODES` is a crucial non-Python dependency for `pygrib`.
+To run `download_era5_data.py`, you need to install Python 3.x and several libraries. Additionally, `ECCODES` is a crucial non-Python dependency for `pygrib`.
 
 ### 1. Install ECCODES:
 
 `ECCODES` is a software package developed by ECMWF for processing WMO FM-92 GRIB, WMO FM-94 BUFR, and WMO CREX messages. It is required for `pygrib` to function correctly.
 
-**On Ubuntu/Debian:**
-
-```
-sudo apt-get update
-sudo apt-get install libeccodes-dev
-```
-
-**On CentOS/RHEL/Fedora:**
-
-```
-sudo yum install eccodes-devel
-# Or for Fedora:
-sudo dnf install eccodes-devel
-```
-
-**On macOS (using Homebrew):**
-
-```
-brew install eccodes
-```
-
 **On Windows:**
-Installing `ECCODES` on Windows can be more involved. It's often recommended to use a Linux subsystem (WSL) or a virtual machine. If you must install directly on Windows, you might need to build it from source or find pre-compiled binaries. Refer to the official ECMWF ECCODES documentation for detailed instructions: [ECMWF ECCODES Documentation](https://www.google.com/search?q=https://confluence.ecmwf.int/display/ECC/ECCODES%2Binstallation).
+Installing `ECCODES` on Windows can be more involved. It's often recommended to use a Linux subsystem (WSL) or a virtual machine. If you must install directly on Windows, you might need to build it from source or find pre-compiled binaries. Refer to the official ECMWF ECCODES documentation for detailed instructions: [ECMWF ECCODES Documentation](https://confluence.ecmwf.int/display/ECC/ECCODES+installation).
 
-### 2. Install Python Dependencies:
+### 2. Set up a Python Virtual Environment and Install Dependencies:
 
-Once `ECCODES` is installed, you can install the Python libraries using `pip`. It's highly recommended to use a virtual environment to manage dependencies.
+It's highly recommended to use a virtual environment to manage dependencies for this project. This isolates the project's dependencies from your system's global Python packages, preventing conflicts. You can choose between `venv` (Python's built-in tool) or `conda` (a powerful package and environment manager).
 
-```
-# Create a virtual environment
-python3 -m venv venv
+#### Option A: Using `venv` (Python's built-in virtual environment tool)
 
-# Activate the virtual environment
-# On Windows:
-.\venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
+1.  **Navigate to your project directory** in the terminal.
 
-# Install the required Python packages
-pip install cdsapi==1.1.0 \
-            pygrib==1.2.5 \
-            pandas==2.3.1 \
-            numpy==2.0.2 \
-            tqdm==4.66.4
-```
+2.  **Create a virtual environment:**
 
-*Note: The versions listed above are those found to be compatible with the script from the provided `requirements.txt` file. While `logging` is a standard Python library and doesn't require separate installation, it's included in the script's dependencies.*
+    ```bash
+    python3 -m venv venv_era5_data
+    ```
 
-## Compiling to an Executable with PyInstaller:
+    (You can replace `venv_era5_data` with your preferred environment name.)
 
-You can compile the script into a standalone executable using `PyInstaller`. This allows the script to be run on systems without Python installed, provided the necessary `ECCODES` libraries are present on the target system.
+3.  **Activate the virtual environment:**
 
-1. **Install PyInstaller:**
+    * **On Windows:**
 
-   ```
-   pip install pyinstaller
-   ```
+        ```bash
+        .\venv_era5_data\Scripts\activate
+        ```
 
-2. **Compile the script:**
-   Navigate to the directory containing `download_era5 (swh mwd pp1d wind dwi).py` in your terminal and run:
+    Your terminal prompt should change to indicate that the virtual environment is active (e.g., `(venv_era5_data) user@host:~`).
 
-   ```
-   pyinstaller -F "download_era5 (swh mwd pp1d wind dwi).py"
-   ```
+4.  **Install the required Python packages:**
 
-   * The `-F` (or `--onefile`) option bundles everything into a single executable file.
+    ```bash
+    pip install cdsapi==0.7.6 numpy==2.3.2 pandas==2.3.1 pygrib==2.1.6 tqdm==4.67.1
+    ```
 
-   * This will create a `dist` folder in your current directory, which will contain the executable.
+    Alternatively, if you have a `requirements.txt` file (which should contain only these packages and versions):
 
-**Important Note for PyInstaller and `pygrib`:**
-When compiling with PyInstaller, `pygrib` often requires special handling due to its underlying C libraries (`ECCODES`). You might encounter issues related to missing shared libraries (`.so`, `.dll`, `.dylib`) at runtime.
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-If the executable fails to run, you may need to:
+#### Option B: Using `conda` (Recommended for scientific stack)
 
-* **Manually copy ECCODES libraries:** Locate the `ECCODES` shared libraries on your system (e.g., `libeccodes.so`, `eccodes.dll`) and place them in the same directory as your PyInstaller executable, or in a location where the system can find them (e.g., `PATH` on Windows, `LD_LIBRARY_PATH` on Linux).
+1.  **Ensure Conda is installed:** If you don't have Conda (Miniconda or Anaconda), download and install it from the official website.
 
-* **Use PyInstaller hooks:** For more complex scenarios, you might need to create a custom PyInstaller hook for `pygrib` to ensure all necessary data and binary files are included. This is an advanced topic and would involve creating a `.py` file with PyInstaller hook specifications.
+2.  **List existing Conda environments** (optional, to see what's already there):
+
+    ```bash
+    conda info --envs
+    ```
+
+3.  **Create a new Conda environment:**
+
+    ```bash
+    conda create --name era5env python=3.9
+    ```
+
+    (You can choose a different Python version, e.g., `python=3.10`, that is compatible with the specified package versions. `era5env` is the name of the environment.)
+
+4.  **Activate the new Conda environment:**
+
+    ```bash
+    conda activate era5env
+    ```
+
+    Your terminal prompt should change to `(era5env) user@host:~`.
+
+5.  **Install the required Python packages into the active Conda environment:**
+
+    ```bash
+    conda install -c conda-forge cdsapi=0.7.6 numpy=2.3.2 pandas=2.3.1 pygrib=2.1.6 tqdm=4.67.1
+    ```
+
+    Using `-c conda-forge` is often recommended for scientific packages with Conda, as it provides pre-compiled binaries.
+
+6.  **Verify installed packages** (optional, to confirm installation):
+
+    ```bash
+    conda list
+    ```
 
 ## ECMWF Data Information:
 
