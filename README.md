@@ -74,10 +74,7 @@ To run `download_era5_data.py`, you need to install Python 3.x and several libra
 
 ### 1. Install ECCODES:
 
-`ECCODES` is a software package developed by ECMWF for processing WMO FM-92 GRIB, WMO FM-94 BUFR, and WMO CREX messages. It is required for `pygrib` to function correctly.
-
-**On Windows:**
-Installing `ECCODES` on Windows can be more involved. It's often recommended to use a Linux subsystem (WSL) or a virtual machine. If you must install directly on Windows, you might need to build it from source or find pre-compiled binaries. Refer to the official ECMWF ECCODES documentation for detailed instructions: [ECMWF ECCODES Documentation](https://confluence.ecmwf.int/display/ECC/ECCODES+installation).
+`ECCODES` is a software package developed by ECMWF for processing WMO FM-92 GRIB, WMO FM-94 BUFR, and WMO CREX messages. It is required for `pygrib` to function correctly. Installing `ECCODES` on Windows can be more involved. It's often recommended to use a Linux subsystem (WSL) or a virtual machine. If you must install directly on Windows, you might need to build it from source or find pre-compiled binaries. Refer to the official ECMWF ECCODES documentation for detailed instructions: [ECMWF ECCODES Documentation](https://confluence.ecmwf.int/display/ECC/ECCODES+installation).
 
 ### 2. Set up a Python Virtual Environment and Install Dependencies:
 
