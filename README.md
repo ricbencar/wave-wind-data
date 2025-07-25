@@ -74,9 +74,40 @@ To run `download_era5_data.py`, you need to install Python 3.x and several libra
 
 ### 1. Install ECCODES:
 
-`ECCODES` is a software package developed by ECMWF for processing WMO FM-92 GRIB, WMO FM-94 BUFR, and WMO CREX messages. It is required for `pygrib` to function correctly. Installing `ECCODES` on Windows can be more involved. It's often recommended to use a Linux subsystem (WSL) or a virtual machine. If you must install directly on Windows, you might need to build it from source or find pre-compiled binaries. Refer to the official ECMWF ECCODES documentation for detailed instructions: [ECMWF ECCODES Documentation](https://confluence.ecmwf.int/display/ECC/ECCODES+installation).
+`ECCODES` is a software package developed by ECMWF for processing WMO FM-92 GRIB, WMO FM-94 BUFR, and WMO CREX messages. It is required for `pygrib` to function correctly.
 
-### 2. Set up a Python Virtual Environment and Install Dependencies:
+`ECCODES` can be installed via `conda` or `pip`, or built from source.
+
+**Using Conda (Recommended):**
+
+```bash
+conda install -c conda-forge eccodes
+```
+
+**Using Pip:**
+
+```bash
+pip install eccodes
+```
+
+For more detailed instructions and alternative installation methods, refer to the official ECMWF ECCODES documentation: [ECMWF ECCODES Installation](https://confluence.ecmwf.int/display/ECC/ECCODES+installation) and [ECCODES with Python Bindings in Conda](https://confluence.ecmwf.int/display/UDOC/How+to+install+ecCodes+with+Python+bindings+in+conda+-+ecCodes+FAQ).
+
+### 2. Set up CDS API:
+
+To use the CDS API for downloading data, you need to register on the Copernicus Climate Data Store (CDS) and set up your personal API key.
+
+1.  **Register:** Go to the [Copernicus Climate Data Store website](https://cds.climate.copernicus.eu/) and create an account if you don't already have one.
+2.  **Get your API Key:** After logging in, navigate to your user profile page. You will find your UID and API key there.
+3.  **Configure API access:** The `cdsapi` library needs to know your UID and API key. The recommended way to do this is to create a file named `.cdsapirc` in your home directory (e.g., `C:\Users\YourUsername\.cdsapirc` on Windows, or `~/.cdsapirc` on Linux/macOS). The content of this file should be:
+
+    ```
+    url: [https://cds.climate.copernicus.eu/api/v2](https://cds.climate.copernicus.eu/api/v2)
+    key: <YOUR_UID>:<YOUR_API_KEY>
+    ```
+
+    Replace `<YOUR_UID>` with your actual User ID and `<YOUR_API_KEY>` with your API key. For more detailed instructions, refer to the [CDS API documentation](https://cds.climate.copernicus.eu/how-to-api).
+
+### 3. Set up a Python Virtual Environment and Install Dependencies:
 
 It's highly recommended to use a virtual environment to manage dependencies for this project. This isolates the project's dependencies from your system's global Python packages, preventing conflicts. You can choose between `venv` (Python's built-in tool) or `conda` (a powerful package and environment manager).
 
@@ -87,7 +118,7 @@ It's highly recommended to use a virtual environment to manage dependencies for 
 2.  **Create a virtual environment:**
 
     ```bash
-    python3 -m venv era5env
+    python3 -m venv venv_era5_data
     ```
 
     (You can replace `venv_era5_data` with your preferred environment name.)
@@ -97,21 +128,15 @@ It's highly recommended to use a virtual environment to manage dependencies for 
     * **On Windows:**
 
         ```bash
-        .\era5env\Scripts\activate
+        .\venv_era5_data\Scripts\activate
         ```
 
-    Your terminal prompt should change to indicate that the virtual environment is active (e.g., `(era5env) user@host:~`).
+    Your terminal prompt should change to indicate that the virtual environment is active (e.g., `(venv_era5_data) user@host:~`).
 
 4.  **Install the required Python packages:**
 
     ```bash
-    pip install cdsapi==0.7.6 numpy==2.3.2 pandas==2.3.1 pygrib==2.1.6 tqdm==4.67.1
-    ```
-
-    Alternatively, if you have a `requirements.txt` file (which should contain only these packages and versions):
-
-    ```bash
-    pip install -r requirements.txt
+    pip install cdsapi numpy pandas pygrib tqdm
     ```
 
 #### Option B: Using `conda` (Recommended for scientific stack)
@@ -130,7 +155,7 @@ It's highly recommended to use a virtual environment to manage dependencies for 
     conda create --name era5env python=3.9
     ```
 
-    (You can choose a different Python version, e.g., `python=3.10`, that is compatible with the specified package versions. `era5env` is the name of the environment.)
+    (You can choose a different Python version, e.g., `python=3.10`. `era5env` is the name of the environment.)
 
 4.  **Activate the new Conda environment:**
 
@@ -143,7 +168,7 @@ It's highly recommended to use a virtual environment to manage dependencies for 
 5.  **Install the required Python packages into the active Conda environment:**
 
     ```bash
-    conda install -c conda-forge cdsapi=0.7.6 numpy=2.3.2 pandas=2.3.1 pygrib=2.1.6 tqdm=4.67.1
+    conda install -c conda-forge cdsapi numpy pandas pygrib tqdm
     ```
 
     Using `-c conda-forge` is often recommended for scientific packages with Conda, as it provides pre-compiled binaries.
