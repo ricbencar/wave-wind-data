@@ -2,7 +2,7 @@
 
 ## Overview:
 
-This script is designed to work with ERA5 reanalysis data from ECMWF using both the CDS API and the MARS (Meteorological Archive and Retrieval System). MARS is ECMWF’s archive retrieval system that enables users to request data using a strictly defined syntax. Detailed information on MARS request syntax and best practices can be found in the official [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
+This script is designed to work with ERA5 reanalysis data from ECMWF using both the CDS API and the MARS (Meteorological Archive and Retrieval System). MARS is ECMWF’s archive retrieval system that enables users to request data using a strictly defined syntax. Detailed information on MARS request syntax and best practices can be found in the official [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user-documentation).
 ![Alt text](https://github.com/user-attachments/assets/c3d475af-8c52-497c-a51a-dc59fa92a0c7)
 The script supports two operational modes:
 
@@ -32,7 +32,7 @@ The script supports two operational modes:
 
     * The `area` key is specified as `[North, West, South, East]` and `time` values are provided in "HH:00:00" format.
 
-    * For further details, refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
+    * For further details, refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user-documentation).
 
 2.  **Unified Variable Mapping:**
 
@@ -72,42 +72,7 @@ When executed, the user is prompted to choose between:
 
 To run `download_era5_data.py`, you need to install Python 3.x and several libraries. Additionally, `ECCODES` is a crucial non-Python dependency for `pygrib`.
 
-### 1. Install ECCODES:
-
-`ECCODES` is a software package developed by ECMWF for processing WMO FM-92 GRIB, WMO FM-94 BUFR, and WMO CREX messages. It is required for `pygrib` to function correctly.
-
-`ECCODES` can be installed via `conda` or `pip`, or built from source.
-
-**Using Conda (Recommended):**
-
-```bash
-conda install -c conda-forge eccodes
-```
-
-**Using Pip:**
-
-```bash
-pip install eccodes
-```
-
-For more detailed instructions and alternative installation methods, refer to the official ECMWF ECCODES documentation: [ECMWF ECCODES Installation](https://confluence.ecmwf.int/display/ECC/ECCODES+installation) and [ECCODES with Python Bindings in Conda](https://confluence.ecmwf.int/display/UDOC/How+to+install+ecCodes+with+Python+bindings+in+conda+-+ecCodes+FAQ).
-
-### 2. Set up CDS API:
-
-To use the CDS API for downloading data, you need to register on the Copernicus Climate Data Store (CDS) and set up your personal API key.
-
-1.  **Register:** Go to the [Copernicus Climate Data Store website](https://cds.climate.copernicus.eu/) and create an account if you don't already have one.
-2.  **Get your API Key:** After logging in, navigate to your user profile page. You will find your UID and API key there.
-3.  **Configure API access:** The `cdsapi` library needs to know your UID and API key. The recommended way to do this is to create a file named `.cdsapirc` in your home directory (e.g., `C:\Users\YourUsername\.cdsapirc` on Windows, or `~/.cdsapirc` on Linux/macOS). The content of this file should be:
-
-    ```
-    url: [https://cds.climate.copernicus.eu/api/v2](https://cds.climate.copernicus.eu/api/v2)
-    key: <YOUR_UID>:<YOUR_API_KEY>
-    ```
-
-    Replace `<YOUR_UID>` with your actual User ID and `<YOUR_API_KEY>` with your API key. For more detailed instructions, refer to the [CDS API documentation](https://cds.climate.copernicus.eu/how-to-api).
-
-### 3. Set up a Python Virtual Environment and Install Dependencies:
+### 1. Set up a Python Virtual Environment and Install Dependencies:
 
 It's highly recommended to use a virtual environment to manage dependencies for this project. This isolates the project's dependencies from your system's global Python packages, preventing conflicts. You can choose between `venv` (Python's built-in tool) or `conda` (a powerful package and environment manager).
 
@@ -131,12 +96,18 @@ It's highly recommended to use a virtual environment to manage dependencies for 
         .\era5env\Scripts\activate
         ```
 
+    * **On macOS/Linux:**
+
+        ```bash
+        source era5env/bin/activate
+        ```
+
     Your terminal prompt should change to indicate that the virtual environment is active (e.g., `(venv_era5_data) user@host:~`).
 
 4.  **Install the required Python packages:**
 
     ```bash
-    pip install cdsapi numpy pandas pygrib tqdm
+    pip install cdsapi numpy pandas pygrib tqdm eccodes
     ```
 
 #### Option B: Using `conda` (Recommended for scientific stack)
@@ -168,7 +139,7 @@ It's highly recommended to use a virtual environment to manage dependencies for 
 5.  **Install the required Python packages into the active Conda environment:**
 
     ```bash
-    conda install -c conda-forge cdsapi numpy pandas pygrib tqdm
+    conda install -c conda-forge cdsapi numpy pandas pygrib tqdm eccodes
     ```
 
     Using `-c conda-forge` is often recommended for scientific packages with Conda, as it provides pre-compiled binaries.
@@ -179,6 +150,23 @@ It's highly recommended to use a virtual environment to manage dependencies for 
     conda list
     ```
 
+### 2. Set up CDS API:
+
+To use the CDS API for downloading data, you need to register on the Copernicus Climate Data Store (CDS) and set up your personal API key.
+
+1.  **Register:** Go to the [Copernicus Climate Data Store website](https://cds.climate.copernicus.eu/) and create an account if you don't already have one.
+
+2.  **Get your API Key:** After logging in, navigate to your user profile page. You will find your UID and API key there.
+
+3.  **Configure API access:** The `cdsapi` library needs to know your UID and API key. The recommended way to do this is to create a file named `.cdsapirc` in your home directory (e.g., `C:\Users\YourUsername\.cdsapirc` on Windows, or `~/.cdsapirc` on Linux/macOS). The content of this file should be:
+
+    ```
+    url: [https://cds.climate.copernicus.eu/api/v2](https://cds.climate.copernicus.eu/api/v2)
+    key: <YOUR_UID>:<YOUR_API_KEY>
+    ```
+
+    Replace `<YOUR_UID>` with your actual User ID and `<YOUR_API_KEY>` with your API key. For more detailed instructions, refer to the [CDS API documentation](https://cds.climate.copernicus.eu/how-to-api).
+
 ## ECMWF Data Information:
 
 * **Website:** [ECMWF](https://www.ecmwf.int)
@@ -187,4 +175,30 @@ It's highly recommended to use a virtual environment to manage dependencies for 
 
 * **Parameter reference:** [Parameter Database](https://codes.ecmwf.int/grib/param-db/)
 
-For more detailed information on CDS API and MARS request syntax, please refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation).
+For more detailed information on CDS API and MARS request syntax, please refer to the [MARS User Documentation](https://confluence.ecmwf.int/display/UDOC/MARS+user-documentation).
+
+## References and Further Reading
+
+This section provides a comprehensive list of external resources for a deeper understanding and continued learning concerning Python virtual environments and the Climate Data Store API. These references offer additional context, detailed tutorials, and official documentation to support users in their work.
+
+**Climate Data Store (CDS) Official Portal:**
+* Copernicus Climate Change Service (C3S) Climate Data Store: <https://cds.climate.copernicus.eu/>
+* CDS API Documentation: <https://cds.climate.copernicus.eu/how-to-api>
+* Common Error Messages for CDS Requests: <https://confluence.ecmwf.int/display/CKB/Common+Error+Messages+for+CDS+Requests>
+* Recommendations and efficiency tips for C3S seasonal forecast datasets: <https://confluence.ecmwf.int/display/CKB/Recommendations+and+efficiency+tips+for+C3S+seasonal+forecast+datasets>
+* UERRA retrieval efficiency: <https://confluence.ecmwf.int/display/UER/UERRA+retrieval+efficiency>
+* ECMWF MARS Keywords: <https://confluence.ecmwf.int/display/UDOC/Keywords+in+MARS+and+Dissemination+requests>
+
+**`cdsapi` Python Library:**
+* `cdsapi` PyPI Project Page: <https://pypi.org/project/cdsapi/>
+* ECMWF `cdsapi` GitHub Repository: <https://github.com/ecmwf/cdsapi>
+* Copernicus Training - Reanalysis Climatology Tutorial (using `cdsapi`): <https://ecmwf-projects.github.io/copernicus-training-c3s/reanalysis-climatology.html>
+* `cdsapi` Example ERA5 Python Script: <https://github.com/ecmwf/cdsapi/blob/master/example-era5.py>
+
+**`ecCodes` Installation and Usage:**
+* `ecCodes` Conda-Forge Feedstock: <https://github.com/conda-forge/eccodes-feedstock>
+* `ecCodes` Installation Documentation: <https://confluence.ecmwf.int/display/ECC/ecCodes+installation>
+* `ecCodes` Python Bindings GitHub Repository: <https://github.com/ecmwf/eccodes-python>
+* `ecCodes` PyPI Project Page: <https://pypi.org/project/eccodes/>
+* `ecCodes` Conda Installation Issue Discussion: <https://github.com/ecmwf/eccodes-python/issues/54>
+* Installing `eccodes` with conda install windows (StackExchange): <https://gis.stackexchange.com/questions/364178/installing-eccodes-with-conda-install-windows>
