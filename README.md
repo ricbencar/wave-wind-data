@@ -196,9 +196,6 @@ This section provides a comprehensive list of external resources for a deeper un
 * `cdsapi` Example ERA5 Python Script: <https://github.com/ecmwf/cdsapi/blob/master/example-era5.py>
 
 **`ecCodes` Installation and Usage:**
-* `ecCodes` Conda-Forge Feedstock: <https://github.com/conda-forge/eccodes-feedstock>
 * `ecCodes` Installation Documentation: <https://confluence.ecmwf.int/display/ECC/ecCodes+installation>
 * `ecCodes` Python Bindings GitHub Repository: <https://github.com/ecmwf/eccodes-python>
 * `ecCodes` PyPI Project Page: <https://pypi.org/project/eccodes/>
-* `ecCodes` Conda Installation Issue Discussion: <https://github.com/ecmwf/eccodes-python/issues/54>
-* Installing `eccodes` with conda install windows (StackExchange): <https://gis.stackexchange.com/questions/364178/installing-eccodes-with-conda-install-windows>
